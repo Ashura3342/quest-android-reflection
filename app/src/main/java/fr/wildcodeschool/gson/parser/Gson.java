@@ -108,17 +108,41 @@ public class Gson {
    * @return boolean: true/false to inform if the parser encountered problem.
    * @throws JSONException: Thrown to indicate a problem with the JSON API.
    */
-  private boolean parseArray(JSONArray pJsonArray, Object pClass) throws JSONException {
+  private boolean parseArray(JSONArray pJsonArray, Object pClass)
+          throws JSONException {
     boolean retValue = true;
 
     int length = Array.getLength(pClass);
-    for (int i=0; i < length; i++) {
-      Object obj = pJsonArray.get(i);
-
-      // TODO repace this code
+    try {
+      for (int i=0; i < length; i++) {
+        Object obj = pJsonArray.get(i);
+        if (obj instanceof JSONObject) {
+          Object instance = pClass.getClass().getComponentType().newInstance();
+          retValue &= parseObject((JSONObject) obj, instance);
+          Array.set(pClass, i, instance);
+          continue;
+        }
+        if (obj instanceof JSONArray) {
+          Object instance = Array.newInstance(
+                  pClass.getClass().getComponentType().getComponentType(),
+                  ((JSONArray) obj).length());
+          retValue &= parseArray((JSONArray) obj, instance);
+          Array.set(pClass, i, instance);
+          continue;
+        }
+        if (obj.getClass() == pClass.getClass().getComponentType()) {
+          Array.set(pClass, i, obj);
+          retValue = false;
+        }
+      }
+    } catch (IllegalAccessException ex) {
+      ex.printStackTrace();
       retValue = false;
-
+    } catch (InstantiationException ex) {
+      ex.printStackTrace();
+      retValue = false;
     }
+
     return retValue;
   }
 }
