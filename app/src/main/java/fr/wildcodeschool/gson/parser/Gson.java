@@ -12,6 +12,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
+import java.nio.charset.Charset;
 import java.util.Iterator;
 
 public class Gson {
@@ -25,7 +26,7 @@ public class Gson {
 
     try {
       BufferedReader streamReader =
-        new BufferedReader(new InputStreamReader(in, "UTF-8"));
+        new BufferedReader(new InputStreamReader(in, Charset.forName("UTF-8")));
 
       StringBuilder builder = new StringBuilder();
       //noinspection StatementWithEmptyBody
@@ -112,19 +113,23 @@ public class Gson {
           throws JSONException {
     boolean retValue = true;
 
+    Class<?> componentType = pClass.getClass().getComponentType();
+    if (componentType == null)
+      return false;
+
     int length = Array.getLength(pClass);
     try {
       for (int i=0; i < length; i++) {
         Object obj = pJsonArray.get(i);
         if (obj instanceof JSONObject) {
-          Object instance = pClass.getClass().getComponentType().newInstance();
+          Object instance = componentType.newInstance();
           retValue &= parseObject((JSONObject) obj, instance);
           Array.set(pClass, i, instance);
           continue;
         }
         if (obj instanceof JSONArray) {
           Object instance = Array.newInstance(
-                  pClass.getClass().getComponentType().getComponentType(),
+                  componentType.getComponentType(),
                   ((JSONArray) obj).length());
           retValue &= parseArray((JSONArray) obj, instance);
           Array.set(pClass, i, instance);
@@ -132,8 +137,9 @@ public class Gson {
         }
         if (obj.getClass() == pClass.getClass().getComponentType()) {
           Array.set(pClass, i, obj);
-          retValue = false;
+          continue;
         }
+        retValue = false;
       }
     } catch (IllegalAccessException ex) {
       ex.printStackTrace();
