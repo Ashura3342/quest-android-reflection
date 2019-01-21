@@ -135,7 +135,7 @@ public class Gson {
           Array.set(pClass, i, instance);
           continue;
         }
-        if (obj.getClass() == pClass.getClass().getComponentType()) {
+        if (obj.getClass() == componentType) {
           Array.set(pClass, i, obj);
           continue;
         }
